@@ -50,11 +50,7 @@ echo "[deploy] importing complete chat V88 data"
 node --env-file=.env.vps scripts/import-chat-v88.mjs
 
 echo "[deploy] reloading ${pm2_app}"
-if [[ -f ecosystem.config.cjs ]]; then
-  pm2 startOrReload ecosystem.config.cjs --only "$pm2_app" --update-env
-else
-  pm2 reload "$pm2_app" --update-env
-fi
+PM2_APP="$pm2_app" node scripts/reload-vps.mjs
 pm2 save >/dev/null
 
 port="$(grep -E '^PORT=' .env.vps | tail -n1 | cut -d= -f2)"

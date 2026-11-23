@@ -9,3 +9,11 @@ The repository contains only RSA-OAEP/AES-256-GCM encrypted transfer data and a 
 Validation: 232 existing regression tests, lint and typecheck passed. Encryption round-trip using the actual full payload passed; modified ciphertext was rejected before database access. VPS build/smoke and live reconciliation are verified separately in deployment logs. The existing dependency-audit exception for Next.js 16.3.8 remains; no dependency upgrade is included.
 
 The temporary source export route is removed after extraction and the source Site is returned to its saved V88 deployment. This operation transfers existing data; it does not implement the deferred backup feature or ongoing automatic content synchronization.
+
+## Live execution evidence
+
+The initial transaction was rolled back by reconciliation of PostgreSQL REAL values. Both sides are now normalized to the same database numeric representation, with focused regression tests covering the source values and PostgreSQL short-decimal output.
+
+Run `45122192379` successfully imported and reconciled all 33 tables, 132 rows, 2 objects and 5 application runtime settings. The VPS returned ready after PM2 reload at commit `b826af92c2119ac4801aa8f2f4eb1e19cb2b90ce`. Live `/api/content` navigation, partners, people and pricing match the source Site response; mobile environment status is active.
+
+The reload helper explicitly loads the migrated `.env.vps` into PM2 and verifies the five application settings in the PM2 process state without logging their values. Subsequent deployments use the migration completion marker and do not overwrite later admin changes.

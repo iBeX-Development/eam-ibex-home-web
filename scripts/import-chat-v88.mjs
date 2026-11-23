@@ -2,6 +2,7 @@ import {readFile,writeFile,rename,stat} from 'node:fs/promises';
 import {createHash,privateDecrypt,createDecipheriv,constants} from 'node:crypto';
 import pg from 'pg';
 import {S3Client,PutObjectCommand,GetObjectCommand} from '@aws-sdk/client-s3';
+import {transferValue} from './v88-transfer-values.mjs';
 
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const id=s=>{if(!/^[a-z_][a-z0-9_]*$/.test(s))throw Error('Invalid identifier');return '"'+s+'"';};
@@ -31,9 +32,7 @@ try{
     id(table);const columns=schemaByTable.get(table);if(!columns)throw Error('Missing target table '+table);
     normalized[table]=rows.map(row=>Object.fromEntries(Object.entries(row).map(([column,value])=>{
       if(!columns.has(column))throw Error('Missing target column '+table+'.'+column);
-      if(value!==null&&columns.get(column)==='boolean')value=Boolean(Number(value));
-      if(value!==null&&columns.get(column)==='real')value=Math.fround(Number(value));
-      return [column,value];
+      return [column,transferValue(columns.get(column),value)];
     })));
   }
   const s3=new S3Client({endpoint:process.env.S3_ENDPOINT,region:process.env.S3_REGION||'us-east-1',forcePathStyle:process.env.S3_FORCE_PATH_STYLE!=='false',credentials:{accessKeyId:process.env.S3_ACCESS_KEY_ID,secretAccessKey:process.env.S3_SECRET_ACCESS_KEY}});
@@ -47,7 +46,7 @@ try{
   for(const [table,rows] of Object.entries(normalized)){
     for(const row of rows){const columns=Object.keys(row);await client.query('INSERT INTO '+id(table)+' ('+columns.map(id).join(',')+') VALUES ('+columns.map((_,i)=>'$'+(i+1)).join(',')+')',columns.map(c=>row[c]));}
     const actual=(await client.query('SELECT * FROM '+id(table))).rows;
-    const projected=actual.map(row=>Object.fromEntries(Object.keys(rows[0]||{}).map(c=>[c,row[c]])));
+    const projected=actual.map(row=>Object.fromEntries(Object.keys(rows[0]||{}).map(c=>[c,transferValue(schemaByTable.get(table).get(c),row[c])])));
     if(actual.length!==rows.length||fingerprint(projected)!==fingerprint(rows))throw Error('Row reconciliation failed '+table);
     report.tables.push({table,rows:rows.length,sha256:fingerprint(rows)});console.log('[v88-import]',table,rows.length);
   }

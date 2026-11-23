@@ -20,8 +20,6 @@ if ! flock -n 9; then
   exit 75
 fi
 
-bash scripts/prepare-v88-transfer.sh
-
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 # shellcheck disable=SC1091
 . "$NVM_DIR/nvm.sh"
@@ -47,6 +45,9 @@ npm run build:vps
 
 echo "[deploy] applying PostgreSQL migrations"
 node --env-file=.env.vps scripts/migrate-postgres.mjs
+
+echo "[deploy] importing complete chat V88 data"
+node --env-file=.env.vps scripts/import-chat-v88.mjs
 
 echo "[deploy] reloading ${pm2_app}"
 if [[ -f ecosystem.config.cjs ]]; then

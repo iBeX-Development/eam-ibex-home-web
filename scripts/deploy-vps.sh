@@ -20,6 +20,8 @@ if ! flock -n 9; then
   exit 75
 fi
 
+bash scripts/prepare-v88-transfer.sh
+
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 # shellcheck disable=SC1091
 . "$NVM_DIR/nvm.sh"
